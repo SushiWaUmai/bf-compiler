@@ -26,18 +26,18 @@ fn main() {
             '[' => {
                 ops.push(Operation::BeginLoop(counter));
                 counter += 1;
-            },
-            ']' =>  {
+            }
+            ']' => {
                 ops.push(Operation::EndLoop(counter));
                 counter -= 1;
-            },
+            }
             '.' => ops.push(Operation::Out),
             ',' => ops.push(Operation::In),
             _ => {}
         }
     }
 
-    let mut asm  = String::new();
+    let mut asm = String::new();
 
     asm += "format ELF64 executable\n";
 
@@ -47,25 +47,25 @@ fn main() {
                 asm += &format!("mov eax, DWORD [ebx]\n");
                 asm += &format!("add al, {x}\n");
                 asm += &format!("mov DWORD [ebx], eax\n");
-            },
+            }
             &Operation::Sub(x) => {
                 asm += &format!("mov eax, DWORD [ebx]\n");
                 asm += &format!("sub al, {x}\n");
                 asm += &format!("mov DWORD [ebx], eax\n");
-            },
+            }
             &Operation::Next(x) => {
                 asm += &format!("add ebx, {x}\n");
-            },
+            }
             &Operation::Prev(x) => {
                 asm += &format!("sub ebx, {x}\n");
-            },
+            }
             &Operation::Out => {
                 asm += "mov eax, 4\n";
                 asm += "mov ebx, 1\n";
                 asm += "mov ecx, DWORD [ebx]\n";
                 asm += "mov edx, 1\n";
                 asm += "int 0x80\n";
-            },
+            }
             _ => {}
         }
     }
