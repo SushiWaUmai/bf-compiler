@@ -85,7 +85,9 @@ fn main() {
     asm += "entry main\n";
     asm += "define SYS_exit     60\n";
     asm += "define SYS_write    1\n";
+    asm += "define SYS_read     0\n";
     asm += "define stdout       1\n";
+    asm += "define stdin        0\n";
     asm += "define exit_success 0\n";
 
     asm += "main:\n";
@@ -124,7 +126,15 @@ fn main() {
                 asm += "mov rdx, 1\n";
                 asm += "syscall\n";
             }
-            &Operation::In => {}
+            &Operation::In => {
+                asm += "lea rcx, [buf+rbx]\n";
+
+                asm += "mov rax, SYS_read\n";
+                asm += "mov rdi, stdin\n";
+                asm += "mov rsi, rcx\n";
+                asm += "mov rdx, 1\n";
+                asm += "syscall\n";
+            }
         }
     }
 
