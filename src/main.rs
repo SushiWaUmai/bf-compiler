@@ -40,18 +40,22 @@ fn main() {
     let mut asm = String::new();
 
     asm += "format ELF64 executable\n";
+    asm += "segment readable executable\n";
+    asm += "entry main\n";
+    asm += "define SYS_exit     60\n";
+    asm += "define SYS_write    1\n";
+    asm += "define stdout       1\n";
+    asm += "define exit_success 0\n";
+
+    asm += "main:\n";
 
     for op in &ops {
         match op {
             &Operation::Add(x) => {
-                asm += &format!("mov eax, DWORD [ebx]\n");
-                asm += &format!("add al, {x}\n");
-                asm += &format!("mov DWORD [ebx], eax\n");
+                asm += &format!("add byte[buf+ebx], {x}\n");
             }
             &Operation::Sub(x) => {
-                asm += &format!("mov eax, DWORD [ebx]\n");
-                asm += &format!("sub al, {x}\n");
-                asm += &format!("mov DWORD [ebx], eax\n");
+                asm += &format!("sub byte [buf+ebx], {x}\n");
             }
             &Operation::Next(x) => {
                 asm += &format!("add ebx, {x}\n");
@@ -59,16 +63,31 @@ fn main() {
             &Operation::Prev(x) => {
                 asm += &format!("sub ebx, {x}\n");
             }
+            &Operation::BeginLoop(x) => {
+                asm += &format!(".BeginLoop{x}:\n");
+                asm += &format!("jz .EndLoop{x}\n");
+            }
+            &Operation::EndLoop(x) => {
+                asm += &format!(".EndLoop{x}:\n");
+                asm += &format!("jnz .BeginLoop{x}\n");
+            }
             &Operation::Out => {
-                asm += "mov eax, 4\n";
-                asm += "mov ebx, 1\n";
-                asm += "mov ecx, DWORD [ebx]\n";
+                asm += "mov eax, SYS_write\n";
+                asm += "mov edi, stdout\n";
+                asm += "mov esi, DWORD [buf+ebx]\n";
                 asm += "mov edx, 1\n";
-                asm += "int 0x80\n";
+                asm += "syscall\n";
             }
             _ => {}
         }
     }
+
+    asm += "mov eax, SYS_exit\n";
+    asm += "mov edi, exit_success\n";
+    asm += "syscall\n";
+
+    asm += "segment readable writable\n";
+    asm += "buf rb 30000\n";
 
     fs::write("./test.asm", asm).unwrap();
 
