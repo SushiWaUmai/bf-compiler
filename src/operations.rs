@@ -146,3 +146,88 @@ pub fn compile_operations(ops: Vec<Operation>, buffer_size: usize) -> String {
 
     asm
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_add_operations() {
+        let result = collect_operations("+++".to_string());
+        let expected = vec![Operation::Add(3)];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_sub_operations() {
+        let result = collect_operations("---".to_string());
+        let expected = vec![Operation::Sub(3)];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_next_prev_operations() {
+        let result = collect_operations(">>><<<".to_string());
+        let expected = vec![Operation::Next(3), Operation::Prev(3)];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_out_in_operations() {
+        let result = collect_operations(".,".to_string());
+        let expected = vec![Operation::Out, Operation::In];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_loop_operations() {
+        let result = collect_operations("[->+<]".to_string());
+        let expected = vec![
+            Operation::BeginLoop(0),
+            Operation::Sub(1),
+            Operation::Next(1),
+            Operation::Add(1),
+            Operation::Prev(1),
+            Operation::EndLoop(0),
+        ];
+        assert_eq!(result, expected);
+    }
+    #[test]
+    fn test_combined_operations() {
+        let result = collect_operations("++>[-<+>]<.".to_string());
+        let expected = vec![
+            Operation::Add(2),
+            Operation::Next(1),
+            Operation::BeginLoop(0),
+            Operation::Sub(1),
+            Operation::Prev(1),
+            Operation::Add(1),
+            Operation::Next(1),
+            Operation::EndLoop(0),
+            Operation::Prev(1),
+            Operation::Out,
+        ];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_empty_input() {
+        let result = collect_operations("".to_string());
+        let expected: Vec<Operation> = vec![];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_mixed_operations() {
+        let result = collect_operations("+-><,.".to_string());
+        let expected = vec![
+            Operation::Add(1),
+            Operation::Sub(1),
+            Operation::Next(1),
+            Operation::Prev(1),
+            Operation::In,
+            Operation::Out,
+        ];
+        assert_eq!(result, expected);
+    }
+}
