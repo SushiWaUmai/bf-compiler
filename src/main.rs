@@ -1,6 +1,6 @@
 use std::fs;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Operation {
     Add(usize),
     Sub(usize),
@@ -8,38 +8,73 @@ enum Operation {
     Prev(usize),
     BeginLoop(i32),
     EndLoop(i32),
-    Out(usize),
-    In(usize),
+    Out,
+    In,
 }
 
 fn main() {
     let content = fs::read_to_string("./test.bf").unwrap();
     let mut ops: Vec<Operation> = vec![];
     let mut jps: Vec<i32> = vec![];
-    let mut counter = 0;
+    let mut jp_counter = 0;
 
     let buffer_size = 30000;
 
+    let mut current_char = ' ';
+    let mut repetition_count = 1;
+
     for c in content.chars() {
+        if c == current_char {
+            match c {
+                '+' | '-' | '>' | '<' => {
+                    repetition_count += 1;
+                    continue;
+                }
+                _ => {}
+            }
+        }
+
+        let op = match current_char {
+            '+' => Some(Operation::Add(repetition_count)),
+            '-' => Some(Operation::Sub(repetition_count)),
+            '>' => Some(Operation::Next(repetition_count)),
+            '<' => Some(Operation::Prev(repetition_count)),
+            _ => None,
+        };
+        if let Some(op) = op {
+            ops.push(op);
+        }
+
         let op = match c {
-            '+' => Operation::Add(1),
-            '-' => Operation::Sub(1),
-            '>' => Operation::Next(1),
-            '<' => Operation::Prev(1),
+            '.' => Some(Operation::Out),
+            ',' => Some(Operation::In),
             '[' => {
-                jps.push(counter);
-                counter += 1;
-                Operation::BeginLoop(counter - 1)
+                jps.push(jp_counter);
+                jp_counter += 1;
+                Some(Operation::BeginLoop(jp_counter - 1))
             }
             ']' => {
                 let c = jps.pop().unwrap();
-                Operation::EndLoop(c)
+                Some(Operation::EndLoop(c))
             }
-            '.' => Operation::Out(1),
-            ',' => Operation::In(1),
-            _ => continue,
+            _ => None,
         };
+        if let Some(op) = op {
+            ops.push(op);
+        }
 
+        repetition_count = 1;
+        current_char = c;
+    }
+
+    let op = match current_char {
+        '+' => Some(Operation::Add(repetition_count)),
+        '-' => Some(Operation::Sub(repetition_count)),
+        '>' => Some(Operation::Next(repetition_count)),
+        '<' => Some(Operation::Prev(repetition_count)),
+        _ => None,
+    };
+    if let Some(op) = op {
         ops.push(op);
     }
 
@@ -80,13 +115,13 @@ fn main() {
                 asm += &format!("jne .BeginLoop{x}\n");
                 asm += &format!(".EndLoop{x}:\n");
             }
-            &Operation::Out(x) => {
+            &Operation::Out => {
                 asm += "lea ecx, [buf+ebx]\n";
 
                 asm += "mov eax, SYS_write\n";
                 asm += "mov edi, stdout\n";
                 asm += "mov esi, ecx\n";
-                asm += &format!("mov edx, {x}\n");
+                asm += "mov edx, 1\n";
                 asm += "syscall\n";
             }
             _ => {}
