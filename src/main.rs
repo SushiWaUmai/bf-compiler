@@ -89,47 +89,47 @@ fn main() {
     asm += "define exit_success 0\n";
 
     asm += "main:\n";
-    asm += &format!("mov ebx, {buffer_size}\n", buffer_size = buffer_size / 2);
+    asm += &format!("mov rbx, {buffer_size}\n", buffer_size = buffer_size / 2);
 
     for op in &ops {
         match op {
             &Operation::Add(x) => {
-                asm += &format!("add byte[buf+ebx], {x}\n");
+                asm += &format!("add byte[buf+rbx], {x}\n");
             }
             &Operation::Sub(x) => {
-                asm += &format!("sub byte [buf+ebx], {x}\n");
+                asm += &format!("sub byte [buf+rbx], {x}\n");
             }
             &Operation::Next(x) => {
-                asm += &format!("add ebx, {x}\n");
+                asm += &format!("add rbx, {x}\n");
             }
             &Operation::Prev(x) => {
-                asm += &format!("sub ebx, {x}\n");
+                asm += &format!("sub rbx, {x}\n");
             }
             &Operation::BeginLoop(x) => {
-                asm += &format!("cmp byte[buf+ebx], 0\n");
+                asm += &format!("cmp byte[buf+rbx], 0\n");
                 asm += &format!("je .EndLoop{x}\n");
                 asm += &format!(".BeginLoop{x}:\n");
             }
             &Operation::EndLoop(x) => {
-                asm += &format!("cmp byte[buf+ebx], 0\n");
+                asm += &format!("cmp byte[buf+rbx], 0\n");
                 asm += &format!("jne .BeginLoop{x}\n");
                 asm += &format!(".EndLoop{x}:\n");
             }
             &Operation::Out => {
-                asm += "lea ecx, [buf+ebx]\n";
+                asm += "lea rcx, [buf+rbx]\n";
 
-                asm += "mov eax, SYS_write\n";
-                asm += "mov edi, stdout\n";
-                asm += "mov esi, ecx\n";
-                asm += "mov edx, 1\n";
+                asm += "mov rax, SYS_write\n";
+                asm += "mov rdi, stdout\n";
+                asm += "mov rsi, rcx\n";
+                asm += "mov rdx, 1\n";
                 asm += "syscall\n";
             }
-            _ => {}
+            &Operation::In => {}
         }
     }
 
-    asm += "mov eax, SYS_exit\n";
-    asm += "mov edi, exit_success\n";
+    asm += "mov rax, SYS_exit\n";
+    asm += "mov rdi, exit_success\n";
     asm += "syscall\n";
 
     asm += "segment readable writable\n";
