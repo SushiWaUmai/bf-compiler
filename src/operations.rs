@@ -148,8 +148,30 @@ pub fn compile_operations(ops: Vec<Operation>, buffer_size: usize) -> String {
 }
 
 #[cfg(test)]
-mod tests {
+mod collect_operations_tests {
     use super::*;
+
+    #[test]
+    fn test_collect_operations_simple_program() {
+        let input = String::from("++-->");
+        let expected = vec![Operation::Add(2), Operation::Sub(2), Operation::Next(1)];
+        assert_eq!(collect_operations(input), expected);
+    }
+
+    #[test]
+    fn test_collect_operations_program_with_loops() {
+        let input = String::from("++[>++<-]");
+        let expected = vec![
+            Operation::Add(2),
+            Operation::BeginLoop(0),
+            Operation::Next(1),
+            Operation::Add(2),
+            Operation::Prev(1),
+            Operation::Sub(1),
+            Operation::EndLoop(0),
+        ];
+        assert_eq!(collect_operations(input), expected);
+    }
 
     #[test]
     fn test_add_operations() {
