@@ -2,39 +2,45 @@ use std::fs;
 
 #[derive(Debug)]
 enum Operation {
-    Add(i32),
-    Sub(i32),
-    Next(i32),
-    Prev(i32),
+    Add(usize),
+    Sub(usize),
+    Next(usize),
+    Prev(usize),
     BeginLoop(i32),
     EndLoop(i32),
-    In,
-    Out,
+    Out(usize),
+    In(usize),
 }
 
 fn main() {
     let content = fs::read_to_string("./test.bf").unwrap();
     let mut ops: Vec<Operation> = vec![];
+    let mut jps: Vec<i32> = vec![];
     let mut counter = 0;
 
+    let buffer_size = 30000;
+
     for c in content.chars() {
-        match c {
-            '+' => ops.push(Operation::Add(1)),
-            '-' => ops.push(Operation::Sub(1)),
-            '>' => ops.push(Operation::Next(1)),
-            '<' => ops.push(Operation::Prev(1)),
+        let op = match c {
+            '+' => Operation::Add(1),
+            '-' => Operation::Sub(1),
+            '>' => Operation::Next(1),
+            '<' => Operation::Prev(1),
             '[' => {
-                ops.push(Operation::BeginLoop(counter));
+                jps.push(counter);
                 counter += 1;
+                Operation::BeginLoop(counter - 1)
             }
             ']' => {
-                ops.push(Operation::EndLoop(counter));
-                counter -= 1;
+                let c = jps.pop().unwrap();
+                Operation::EndLoop(c)
             }
-            '.' => ops.push(Operation::Out),
-            ',' => ops.push(Operation::In),
-            _ => {}
-        }
+            '.' => Operation::Out(1),
+            ',' => Operation::In(1),
+            _ => continue,
+        };
+
+        ops.push(op);
     }
 
     let mut asm = String::new();
@@ -48,6 +54,7 @@ fn main() {
     asm += "define exit_success 0\n";
 
     asm += "main:\n";
+    asm += &format!("mov ebx, {buffer_size}\n", buffer_size = buffer_size / 2);
 
     for op in &ops {
         match op {
@@ -64,18 +71,22 @@ fn main() {
                 asm += &format!("sub ebx, {x}\n");
             }
             &Operation::BeginLoop(x) => {
+                asm += &format!("cmp byte[buf+ebx], 0\n");
+                asm += &format!("je .EndLoop{x}\n");
                 asm += &format!(".BeginLoop{x}:\n");
-                asm += &format!("jz .EndLoop{x}\n");
             }
             &Operation::EndLoop(x) => {
+                asm += &format!("cmp byte[buf+ebx], 0\n");
+                asm += &format!("jne .BeginLoop{x}\n");
                 asm += &format!(".EndLoop{x}:\n");
-                asm += &format!("jnz .BeginLoop{x}\n");
             }
-            &Operation::Out => {
+            &Operation::Out(x) => {
+                asm += "lea ecx, [buf+ebx]\n";
+
                 asm += "mov eax, SYS_write\n";
                 asm += "mov edi, stdout\n";
-                asm += "mov esi, DWORD [buf+ebx]\n";
-                asm += "mov edx, 1\n";
+                asm += "mov esi, ecx\n";
+                asm += &format!("mov edx, {x}\n");
                 asm += "syscall\n";
             }
             _ => {}
@@ -87,7 +98,7 @@ fn main() {
     asm += "syscall\n";
 
     asm += "segment readable writable\n";
-    asm += "buf rb 30000\n";
+    asm += &format!("buf: rb {buffer_size}\n");
 
     fs::write("./test.asm", asm).unwrap();
 
