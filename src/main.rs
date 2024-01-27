@@ -1,7 +1,7 @@
 use getopts::Options;
 mod operations;
 use operations::*;
-use std::{env, fs, process};
+use std::{env, fs, process, str::FromStr};
 
 fn usage(progname: &str, opts: getopts::Options) {
     let brief = format!("Usage: {progname} [options] [file]");
@@ -65,16 +65,13 @@ fn run() -> i32 {
         }
     };
 
-    let ops = collect_operations(content);
-    let asm = compile_operations(ops, buffer_size);
+    let program = Program::new(Operations::from_str(&content).unwrap()).unwrap();
+    let asm = compile_program(program, buffer_size);
 
-    match fs::write(&output_path, asm) {
-        Err(x) => {
-            eprintln!("Failed to write assembly to {output_path}");
-            eprintln!("{x}");
-            return 1;
-        }
-        _ => {}
+    if let Err(x) = fs::write(&output_path, asm) {
+        eprintln!("Failed to write assembly to {output_path}");
+        eprintln!("{x}");
+        return 1;
     }
 
     0
