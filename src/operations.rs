@@ -109,7 +109,7 @@ impl FromStr for Operations {
         let mut jp_counter = 0;
         let mut jumps: Vec<i32> = vec![];
 
-        s.chars().fold(&mut operations, move |acc, c| {
+        s.chars().fold(&mut operations, |acc, c| {
             match c {
                 '+' => acc.push_op(Operation::Add(1)),
                 '-' => acc.push_op(Operation::Sub(1)),
@@ -130,6 +130,11 @@ impl FromStr for Operations {
             };
             acc
         });
+
+        if !jumps.is_empty() {
+            return Err(());
+        }
+
         operations.0.remove(0);
         Ok(operations)
     }
